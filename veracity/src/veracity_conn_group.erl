@@ -1,41 +1,48 @@
 %%%-------------------------------------------------------------------
-%%% File    : veracity_sup.erl
+%%% File    : veracity_conn_group.erl
 %%% Author  : Brendon Hogger <brendonh@lightblue>
-%%% Description : 
+%%% Description : Manage processes for one connection
 %%%
-%%% Created : 25 Dec 2008 by Brendon Hogger <brendonh@lightblue>
+%%% Created : 31 Dec 2008 by Brendon Hogger <brendonh@lightblue>
 %%%-------------------------------------------------------------------
--module(veracity_sup).
+-module(veracity_conn_group).
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/1]).
+-export([start_link/1, get_child/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
--define(SERVER, ?MODULE).
-
 %%====================================================================
 %% API functions
 %%====================================================================
-start_link(Args) ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, Args).
+
+start_link(Opts) ->
+    supervisor:start_link(?MODULE, Opts).
 
 
 %%====================================================================
 %% Supervisor callbacks
 %%====================================================================
-init(_Args) ->
 
-    ConnSup = {conn_sup,{veracity_conn_sup,start_link,[]},
-               permanent,2000,supervisor,[veracity_conn_sup]},
+init(Opts0) ->
 
+    Opts = [{supervisor, self()}|Opts0],
 
-    {ok,{{one_for_one,0,1}, [ConnSup]}}.
+    Conn = {conn,{veracity_conn,start_link,[Opts]},
+            permanent,2000,worker,[veracity_conn]},
 
+    Users = {users, {veracity_users, start_link, [Opts]},
+             permanent,2000, worker, [veracity_users]},
+
+    {ok,{{one_for_one,1,1}, [Conn, Users]}}.
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+get_child(SupRef, ID) ->
+    hd([Child || {CID, Child, _, _} <- supervisor:which_children(SupRef),
+                 CID == ID]).

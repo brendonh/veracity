@@ -1,16 +1,16 @@
 %%%-------------------------------------------------------------------
-%%% File    : veracity_sup.erl
+%%% File    : veracity_conn_sup.erl
 %%% Author  : Brendon Hogger <brendonh@lightblue>
-%%% Description : 
+%%% Description : simple_one_for_one connection supervisor
 %%%
-%%% Created : 25 Dec 2008 by Brendon Hogger <brendonh@lightblue>
+%%% Created : 29 Dec 2008 by Brendon Hogger <brendonh@lightblue>
 %%%-------------------------------------------------------------------
--module(veracity_sup).
+-module(veracity_conn_sup).
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/1]).
+-export([start_link/0, connect/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -20,21 +20,25 @@
 %%====================================================================
 %% API functions
 %%====================================================================
-start_link(Args) ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, Args).
+start_link() ->
+    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+
+connect(Opts) ->
+    {ok, Pid} = supervisor:start_child(veracity_conn_sup, [Opts]),
+    Conn = veracity_conn_group:get_child(Pid, conn),
+    Users = veracity_conn_group:get_child(Pid, users),
+    {Conn, Users}.
 
 
 %%====================================================================
 %% Supervisor callbacks
 %%====================================================================
-init(_Args) ->
+init([]) ->
 
-    ConnSup = {conn_sup,{veracity_conn_sup,start_link,[]},
-               permanent,2000,supervisor,[veracity_conn_sup]},
+    GroupSpec = {group ,{veracity_conn_group,start_link,[]},
+                 transient,2000,supervisor,[veracity_conn_group]},
 
-
-    {ok,{{one_for_one,0,1}, [ConnSup]}}.
-
+    {ok,{{simple_one_for_one,0,1}, [GroupSpec]}}.
 
 %%====================================================================
 %% Internal functions

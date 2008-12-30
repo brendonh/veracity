@@ -39,6 +39,9 @@ $(RELEASE_NAME).boot: $(RELEASE_NAME).rel
 run: run_prereqs
 	$(ERL_CMD)           -sname $(PKG_NAME) -s $(PKG_PREFIX)_app
 
+make test: run_prereqs
+	$(ERL_CMD)           -sname $(PKG_NAME) -s $(PKG_PREFIX)_app -s vtest test
+
 daemon: run_prereqs
 	$(ERL_CMD) -detached -sname $(PKG_NAME) -s $(PKG_PREFIX)_app >> $(PKG_NAME).log 2>&1
 

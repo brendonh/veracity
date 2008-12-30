@@ -30,19 +30,20 @@ message([$:|Rest]) ->
     case prefix(Prefix) of
         true ->
             case message(tl(Tail)) of
-                {ok, {Command, Params}} ->
+                {ok, {none, Command, Params}} ->
                     {ok, {Prefix, Command, Params}};
-                Other -> Other
+                Other -> 
+                    Other
             end;
         false ->
-            invalid_prefix
+            {invalid_prefix, Prefix}
     end;
 message(S) ->
     {Tail, Command} = getnext(S),
     case command(Command) of
         true  ->
             case params(Tail) of
-                {ok, Params} -> {ok, {Command, Params}};
+                {ok, Params} -> {ok, {none, Command, Params}};
                 {error, Error} -> Error
             end;
         false ->
@@ -286,8 +287,11 @@ servername(S) -> hostname(S).
 
 %% host       =  hostname / hostaddr
 
-host(S) -> hostname(S) orelse hostaddr(S).
+host(S) -> hostname(S) orelse hostaddr(S) orelse cloak(S).
 
+
+cloak(_S) ->
+    true. % Heh heh
 
 %% hostname   =  shortname *( "." shortname )
 
@@ -506,10 +510,8 @@ tryfuncs(S, Fs) ->
 
 
 test() ->
-    [io:format("~s: ~p~n", [N, message(N)])
-     || N <- [
-              "1234 world",
-              "one two three four five six seven eight nine ten etc etc etc etc etc etc etc etc",
-              ":brend@taizilla.dynalias.org Hi there! : tailing arguments"
-             ]].
+
+    io:format("Message: ~p~n", [message(
+                                  ":Brend!n=brendonh@220-131-227-200.HINET-IP.hinet.net PRIVMSG veracity_bot :Also, hi")]).
+
 
